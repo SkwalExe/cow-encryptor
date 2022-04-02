@@ -150,6 +150,7 @@ fn main() {
     let mut command = "default";
     let mut file_path = String::new();
     let mut overwrite = false;
+    let mut write = true;
 
     let mut args: Vec<String> = std::env::args().collect();
     args.remove(0); // remove the first argument, which is the name of the binary
@@ -177,6 +178,10 @@ fn main() {
                 command = "help";
                 args.remove(0);
             }
+            "-p" | "--print" => {
+                write = false;
+                args.remove(0);
+            }
             _ => {
                 // check if the argument is a file path
 
@@ -202,29 +207,10 @@ fn main() {
             check_cow_translator_exists(); // check if cow-translator is installed
             check_version();
 
-            let cow_file = format!("{}.cow", &file_path);
-
-            if Path::new(cow_file.as_str()).is_file() {
-                if !overwrite {
-                    error(format!("Cow file already exists : {}", &cow_file).as_str());
-                    error("Please use --overwrite to overwrite the file");
-                    exit(1);
-                }
-            }
+            
 
             info(format!("Encrypting file : {}", &file_path).as_str());
-            let mut encrypted_file = match OpenOptions::new()
-                .write(true)
-                .truncate(true)
-                .create(true)
-                .open(cow_file.as_str())
-            {
-                Ok(file) => file,
-                Err(e) => {
-                    error(format!("Error while opening file : {}", e).as_str());
-                    exit(1);
-                }
-            };
+            
 
             let mut original_file = match File::open(&file_path) {
                 Ok(file) => file,
@@ -264,15 +250,42 @@ fn main() {
                     exit(1);
                 }
             };
-            match encrypted_file.write_all(encrypted_file_content.as_bytes()) {
-                Ok(_) => success("Successfully wrote file"),
-                Err(e) => {
-                    error(format!("Error while writing file : {}", e).as_str());
-                    exit(1);
-                }
-            };
+            
+            if write {
+                let cow_file = format!("{}.cow", &file_path);
 
-            success(format!("Finished : {}", &cow_file).as_str());
+                if Path::new(cow_file.as_str()).is_file() {
+                    if !overwrite {
+                        error(format!("Cow file already exists : {}", &cow_file).as_str());
+                        error("Please use --overwrite to overwrite the file");
+                        exit(1);
+                    }
+                }
+                let mut encrypted_file = match OpenOptions::new()
+                .write(true)
+                .truncate(true)
+                .create(true)
+                .open(cow_file.as_str())
+                {
+                    Ok(file) => file,
+                    Err(e) => {
+                        error(format!("Error while opening file : {}", e).as_str());
+                        exit(1);
+                    }
+                };
+
+                match encrypted_file.write_all(encrypted_file_content.as_bytes()) {
+                    Ok(_) => success("Successfully wrote file"),
+                    Err(e) => {
+                        error(format!("Error while writing file : {}", e).as_str());
+                        exit(1);
+                    }
+                };
+                success(format!("Finished : {}", &cow_file).as_str());
+            } else {
+                println!("{}", encrypted_file_content);
+                success("Finished");
+            }
         }
         "decrypt" => {
             check_file_path(&file_path); // check if a file path is specified
@@ -288,27 +301,7 @@ fn main() {
             info(format!("Decrypting file : {}", &file_path).as_str());
 
             // remove last 4 characters from the file path
-            let decrypted_file_path = file_path.to_string().trim_end_matches(".cow").to_string();
-            if Path::new(&decrypted_file_path).is_file() {
-                if !overwrite {
-                    error(format!("File already exists : {}", &decrypted_file_path).as_str());
-                    error("Please use --overwrite to overwrite the file");
-                    exit(1);
-                }
-            }
-
-            let mut decrypted_file = match OpenOptions::new()
-                .write(true)
-                .truncate(true)
-                .create(true)
-                .open(decrypted_file_path.as_str())
-            {
-                Ok(file) => file,
-                Err(e) => {
-                    error(format!("Error while opening file : {}", e).as_str());
-                    exit(1);
-                }
-            };
+            
 
             let mut original_file = match File::open(&file_path) {
                 Ok(file) => file,
@@ -349,15 +342,42 @@ fn main() {
                 }
             };
 
-            match decrypted_file.write_all(decrypted_file_content.as_bytes()) {
-                Ok(_) => success("Successfully wrote file"),
+            
+            if write {
+                let decrypted_file_path = file_path.to_string().trim_end_matches(".cow").to_string();
+            if Path::new(&decrypted_file_path).is_file() {
+                if !overwrite {
+                    error(format!("File already exists : {}", &decrypted_file_path).as_str());
+                    error("Please use --overwrite to overwrite the file");
+                    exit(1);
+                }
+            }
+
+            let mut decrypted_file = match OpenOptions::new()
+                .write(true)
+                .truncate(true)
+                .create(true)
+                .open(decrypted_file_path.as_str())
+            {
+                Ok(file) => file,
                 Err(e) => {
-                    error(format!("Error while writing file : {}", e).as_str());
+                    error(format!("Error while opening file : {}", e).as_str());
                     exit(1);
                 }
             };
+                match decrypted_file.write_all(decrypted_file_content.as_bytes()) {
+                    Ok(_) => success("Successfully wrote file"),
+                    Err(e) => {
+                        error(format!("Error while writing file : {}", e).as_str());
+                        exit(1);
+                    }
+                };
+                success(format!("Finished : {}", &decrypted_file_path).as_str());
+            } else {
+                println!("{}", decrypted_file_content);
+                success("Finished");
+            }
 
-            success(format!("Finished : {}", &decrypted_file_path).as_str());
         }
         "help" => {
             println!("{}{} Cow-encryptor {}", BG_MAGENTA, WHITE, RESET);
@@ -388,6 +408,11 @@ fn main() {
 
             println!(
                 "\t{}--encrypt, -e: {}Encryption mode{}",
+                MAGENTA, YELLOW, RESET
+            );
+
+            println!(
+                "\t{}--print, -p: {}Don't write result to a file, just print it{}",
                 MAGENTA, YELLOW, RESET
             );
 

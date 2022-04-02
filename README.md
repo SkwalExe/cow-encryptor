@@ -109,6 +109,10 @@ cow-encryptor [--decrypt] secret.txt.cow
 
 The decryption mode will automatically be used if the file ends with `.cow`
 
+## --print
+
+With this option, the encrypted/decrypted file will be printed to the standard output instead if saving it to a file.
+
 # Docker 🐳
 
 ## Run the latest version
