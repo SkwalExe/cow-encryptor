@@ -109,7 +109,46 @@ cow-encryptor [--decrypt] secret.txt.cow
 
 The decryption mode will automatically be used if the file ends with `.cow`
 
+# Docker 🐳
 
+## Run the latest version
+
+```bash
+docker run --rm -it ghcr.io/skwalexe/cow-encryptor:main
+```
+
+## Test your changes 🚧
+
+### Build 🛠️
+
+```bash
+# 📂 cow-encryptor/
+docker build -t cow-encryptor .
+```
+
+### Run 🏃
+
+```bash
+docker run --rm -it cow-encryptor [OPTIONS]
+```
+
+# Uninstall 🗑
+
+## With make
+
+Run make uninstall
+
+```bash
+# 📂 cow-encryptor/
+make uninstall
+```
+
+## Or
+Just remove the binary
+
+```bash
+sudo rm /usr/bin/cow-encryptor
+```
 
 # final
 
