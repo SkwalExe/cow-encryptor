@@ -3,6 +3,10 @@ use std::io::{Read, Write};
 use std::path::Path;
 use std::process::{exit, Command};
 
+// ------------------------------
+// -- BEGIN RUST LOGGING SNIPPET --
+// https://github.com/SkwalExe/rust-logging
+
 const RED: &str = "\x1b[91m";
 const GREEN: &str = "\x1b[92m";
 const YELLOW: &str = "\x1b[93m";
@@ -105,15 +109,20 @@ fn error(msg: &str) {
     );
 }
 
+// -- END RUST LOGGING SNIPPET --
+// ------------------------------
+
 // this function checks if cow-translator is installed on the system, else, prints an error and exit
 fn check_cow_translator_exists() {
     info("checking if cow-translator is installed");
-    match Command::new("cow-translator").arg("-v").output() {
+    match Command::new("cow-translator").arg("-v").output() { // try to execute cow-translator -v 
         Ok(_) => {
+            // if the command is found
             success("cow-translator is installed");
         }
 
         Err(_) => {
+            // if an error occured (not found)
             error("cow-translator is not installed, or is not in your PATH");
             error("please install cow-translator and try again");
             exit(1);
@@ -121,21 +130,25 @@ fn check_cow_translator_exists() {
     }
 }
 
+// this function check if the file path is empty 
 fn check_file_path(path: &str) {
+
     if path.is_empty() {
         error("Please specify a file path");
         exit(1);
     }
 }
 
+// this function checks the version of cow-translator
+// version 1.* or higher is required
 fn check_version() {
     info("checking if cow-encryptor is up to date");
-    let version = Command::new("cow-translator")
+    let version = Command::new("cow-translator") // try to execute cow-translator --version-check
         .arg("--version-check")
         .output()
         .unwrap();
 
-    let version = String::from_utf8_lossy(&version.stdout);
+    let version = String::from_utf8_lossy(&version.stdout); // convert the output to a string
     // if the version doesn't starts with 1.
     if !version.starts_with("1.") {
         error("cow-encryptor is not up to date");
@@ -147,15 +160,15 @@ fn check_version() {
 }
 
 fn main() {
-    let mut command = "default";
-    let mut file_path = String::new();
-    let mut overwrite = false;
-    let mut write = true;
+    let mut command = "default";        // the action to execute
+    let mut file_path = String::new();  // the file to encrypt/decrypt
+    let mut overwrite = false;          // should the program overwrite the destination file if it already exists
+    let mut write = true;               // should the program write to the destination file or just print to stdout
 
     let mut args: Vec<String> = std::env::args().collect();
     args.remove(0); // remove the first argument, which is the name of the binary
 
-    while args.len() > 0 {
+    while args.len() > 0 { // parse args
         match args[0].as_str() {
             "-e" | "--encrypt" => {
                 command = "encrypt";
@@ -205,13 +218,14 @@ fn main() {
         "default" | "encrypt" => {
             check_file_path(&file_path); // check if a file path is specified
             check_cow_translator_exists(); // check if cow-translator is installed
-            check_version();
+            check_version();                // check if cow-translator is up to date
 
             
 
             info(format!("Encrypting file : {}", &file_path).as_str());
             
 
+            // the original file 
             let mut original_file = match File::open(&file_path) {
                 Ok(file) => file,
                 Err(e) => {
@@ -220,9 +234,11 @@ fn main() {
                 }
             };
 
-            let mut original_file_content = String::new();
-            let encrypted_file_content: String;
 
+            let mut original_file_content = String::new(); // the content of the original file
+            let encrypted_file_content: String; // the content of the original file but encrypted
+
+            // read the original file to original_file_content
             match original_file.read_to_string(&mut original_file_content) {
                 Ok(_) => success("Successfully read file"),
                 Err(e) => {
@@ -231,6 +247,7 @@ fn main() {
                 }
             };
 
+            // encrypt the original file content
             match Command::new("cow-translator")
                 .arg("-nc")
                 .arg("-i")
@@ -251,16 +268,24 @@ fn main() {
                 }
             };
             
-            if write {
-                let cow_file = format!("{}.cow", &file_path);
 
+            // if -p is specified, print the encrypted file content to stdout else write it to the destination file
+            if write {
+                let cow_file = format!("{}.cow", &file_path); // encrypted file path
+
+                // check if a destination file already exists
                 if Path::new(cow_file.as_str()).is_file() {
+            
+                    // if --overwrite is not specified
                     if !overwrite {
+
                         error(format!("Cow file already exists : {}", &cow_file).as_str());
                         error("Please use --overwrite to overwrite the file");
                         exit(1);
                     }
                 }
+
+                // the encrypted file
                 let mut encrypted_file = match OpenOptions::new()
                 .write(true)
                 .truncate(true)
@@ -274,6 +299,7 @@ fn main() {
                     }
                 };
 
+                // write the encrypted content to the destination file
                 match encrypted_file.write_all(encrypted_file_content.as_bytes()) {
                     Ok(_) => success("Successfully wrote file"),
                     Err(e) => {
@@ -283,14 +309,16 @@ fn main() {
                 };
                 success(format!("Finished : {}", &cow_file).as_str());
             } else {
+                // just print to stdout
                 println!("{}", encrypted_file_content);
                 success("Finished");
             }
+
         }
         "decrypt" => {
             check_file_path(&file_path); // check if a file path is specified
             check_cow_translator_exists(); // check if cow-translator is installed
-            check_version();
+            check_version();            // check the version of cow-translator
 
             // check if the file is a cow file
             if !file_path.ends_with(".cow") {
@@ -300,9 +328,9 @@ fn main() {
 
             info(format!("Decrypting file : {}", &file_path).as_str());
 
-            // remove last 4 characters from the file path
             
 
+            // the encrypted file
             let mut original_file = match File::open(&file_path) {
                 Ok(file) => file,
                 Err(e) => {
@@ -311,9 +339,10 @@ fn main() {
                 }
             };
 
-            let mut original_file_content = String::new();
-            let decrypted_file_content: String;
+            let mut original_file_content = String::new(); // the content of the encrypted file
+            let decrypted_file_content: String; // the content of the encrypted file but decrypted
 
+            // read the encrypted file to original_file_content
             match original_file.read_to_string(&mut original_file_content) {
                 Ok(_) => success("Successfully read file"),
                 Err(e) => {
@@ -322,6 +351,7 @@ fn main() {
                 }
             };
 
+            // try to decrypt the encrypted file content
             match Command::new("cow-translator")
                 .arg("-nc")
                 .arg("-t")
@@ -342,29 +372,35 @@ fn main() {
                 }
             };
 
-            
+            // if -p is specified, print the decrypted file content to stdout else write it to the destination file
             if write {
+                    
+                // remove last 4 characters from the file path (.cow)
                 let decrypted_file_path = file_path.to_string().trim_end_matches(".cow").to_string();
-            if Path::new(&decrypted_file_path).is_file() {
-                if !overwrite {
-                    error(format!("File already exists : {}", &decrypted_file_path).as_str());
-                    error("Please use --overwrite to overwrite the file");
-                    exit(1);
+                // if the destination file already exists
+                if Path::new(&decrypted_file_path).is_file() {
+                    if !overwrite {
+                        // if --overwrite is not specified
+                        error(format!("File already exists : {}", &decrypted_file_path).as_str());
+                        error("Please use --overwrite to overwrite the file");
+                        exit(1);
+                    }
                 }
-            }
+                // the destination file
+                let mut decrypted_file = match OpenOptions::new()
+                    .write(true)
+                    .truncate(true)
+                    .create(true)
+                    .open(decrypted_file_path.as_str())
+                {
+                    Ok(file) => file,
+                    Err(e) => {
+                        error(format!("Error while opening file : {}", e).as_str());
+                        exit(1);
+                    }
+                };
 
-            let mut decrypted_file = match OpenOptions::new()
-                .write(true)
-                .truncate(true)
-                .create(true)
-                .open(decrypted_file_path.as_str())
-            {
-                Ok(file) => file,
-                Err(e) => {
-                    error(format!("Error while opening file : {}", e).as_str());
-                    exit(1);
-                }
-            };
+                // write the decrypted content to the destination file
                 match decrypted_file.write_all(decrypted_file_content.as_bytes()) {
                     Ok(_) => success("Successfully wrote file"),
                     Err(e) => {
