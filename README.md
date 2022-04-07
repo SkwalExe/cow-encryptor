@@ -18,11 +18,18 @@ yay -S cow-encryptor
 
 ### With make - Linux 🐧
 
-Run make
+Build with make
 
 ```bash
 # 📂 cow-encryptor/
 make
+```
+
+Copy the binary to bin folder
+
+```bash
+# 📂 cow-encryptor/
+make install
 ```
 
 ### Build from source - Linux 🐧 & Windows 🪟
@@ -147,8 +154,7 @@ Run make uninstall
 make uninstall
 ```
 
-## Or
-Just remove the binary
+## removing the binary
 
 ```bash
 sudo rm /usr/bin/cow-encryptor

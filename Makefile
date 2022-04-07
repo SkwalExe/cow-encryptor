@@ -1,7 +1,9 @@
-all: install
+all: build
+
+build:
+	cargo build --release
 
 install:
-	cargo build --release
 	sudo cp target/release/cow-encryptor /usr/bin/cow-encryptor
 
 uninstall:
